@@ -6,3 +6,4 @@ src/mkdt.egg-info
 **/saved_buffers/
 **/wandb
 **/distilled_datasets
+**/ckpt_dir/

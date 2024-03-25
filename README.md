@@ -16,6 +16,13 @@ Install the package
 pip install -e .
 ```
 
+## Overview
+
+1. Obtain representations from teacher model 
+2. Train and save "expert trajectories" (referred to as buffers in code)
+3. Distill dataset 
+4. Evaluate by pre-training on distilled dataset and linear evaluation on downstream datasets
+
 ## Obtaining Representations from Teacher Model 
 
 Any arbitrary model trained with SSL can be used to obtain the target representations. 
@@ -49,13 +56,19 @@ P.S. For the aforementioned script, it is necessary to use arg_name=value conven
 ## Distilling Dataset
 
 ```
-python 
+CUDA_VISIBLE_DEVICES=GPU1,GPU2 python distill.py --dataset <dataset name> --train_labels_path <path_to_teacher_representations> --expert_epochs 2 --image_init_idx_path <path to pickle file containing indices of data to initialize distilled data>  --max_start_epoch 2 --expert_dir <path to expert trajectories / buffers folder> --iters <number of iters>
 ```
 
 ## Evaluating Distilled Dataset
 
+Evaluate subset
 ```
-python 
+python eval.py --subset_path <path to subset indices> --pre_epoch <pretraining_epochs> --train_dataset <dataset> --label_path <path_to_teacher_representations>
+```
+
+Evaluate distilled dataset-
+```
+python eval.py --result_dir <path to distilled dataset folder> --pre_epoch <pretraining_epochs> --train_dataset <dataset> --label_path <path_to_teacher_representations>
 ```
 
 ## Bibtex
