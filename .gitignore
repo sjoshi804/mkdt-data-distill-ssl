@@ -1,0 +1,8 @@
+src/mkdt/teacher_repr/saved
+src/mkdt/teacher_repr/teacher_models
+build
+**/*.pyc
+src/mkdt.egg-info
+**/saved_buffers/
+**/wandb
+**/distilled_datasets
