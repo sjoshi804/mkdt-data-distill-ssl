@@ -10,6 +10,7 @@ from torchvision import datasets, transforms
 import kornia as K
 import numpy as np
 import os
+import pandas as pd
 import random
 import time
 import torch
@@ -18,6 +19,23 @@ import torch.nn.functional as F
 import tqdm
 
 
+class ImageNet(torch.utils.data.Dataset):
+    def __init__(self, root: str, split: str, transform=None):
+        self.root = root
+        df = pd.read_csv(os.path.join(root, split, "labels.csv"), on_bad_lines='skip')
+        self.images = df["image"]
+        self.labels = df["label"]
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        image = Image.open(os.path.join(self.root, self.images[idx])).convert('RGB')
+        if self.transform is not None:
+            image = self.transform(image)
+        label = self.labels[idx]
+        return image, label
 
 class Config:
     imagenette = [0, 217, 482, 491, 497, 566, 569, 571, 574, 701]
@@ -48,7 +66,7 @@ class Config:
 
 config = Config()
 
-def get_dataset(dataset, data_path, batch_size=1, subset="imagenette", subset_size=None, args=None, set_seed=True):
+def get_dataset(dataset, data_path, batch_size=1, subset=None, subset_size=None, args=None, set_seed=True):
     dataset = dataset.lower()
     if set_seed:    
         random.seed(args.seed)
@@ -95,7 +113,9 @@ def get_dataset(dataset, data_path, batch_size=1, subset="imagenette", subset_si
         im_size = (128, 128)
         num_classes = 10
 
-        config.img_net_classes = config.dict[subset]
+        config.img_net_classes = list(range(1000))
+        if subset is not None:
+            config.img_net_classes = config.dict[subset]
 
         mean = [0.485, 0.456, 0.3868]
         std = [0.2309, 0.2262, 0.2237]
@@ -109,11 +129,11 @@ def get_dataset(dataset, data_path, batch_size=1, subset="imagenette", subset_si
                                             transforms.Resize(im_size),
                                             transforms.CenterCrop(im_size)])
 
-        dst_train = datasets.ImageNet(data_path, split="train", transform=transform) # no augmentation
+        dst_train = ImageNet(data_path, split="train", transform=transform) # no augmentation
         dst_train_dict = {c : torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.equal(dst_train.targets, config.img_net_classes[c])))) for c in range(len(config.img_net_classes))}
         dst_train = torch.utils.data.Subset(dst_train, np.squeeze(np.argwhere(np.isin(dst_train.targets, config.img_net_classes))))
         loader_train_dict = {c : torch.utils.data.DataLoader(dst_train_dict[c], batch_size=batch_size, shuffle=True, num_workers=16) for c in range(len(config.img_net_classes))}
-        dst_test = datasets.ImageNet(data_path, split="val", transform=transform)
+        dst_test = ImageNet(data_path, split="test", transform=transform)
         dst_test = torch.utils.data.Subset(dst_test, np.squeeze(np.argwhere(np.isin(dst_test.targets, config.img_net_classes))))
         for c in range(len(config.img_net_classes)):
             dst_test.dataset.targets[dst_test.dataset.targets == config.img_net_classes[c]] = c
