@@ -48,7 +48,7 @@ To parallelize runs, you can use the following script to run on gpus with ids fr
 Set num_runs s.t. num_experts * # gpus * num_runs = total number of desired buffers (expert trajectories)
 
 ```
-./create_buffers.sh --dataset=<dataset>--num_experts=<num_experts> --train_labels_path= <train_labels_path> --start_device=0 --end_device=3 --num_runs=<num_runs> --env_name=<env_name> --save_dir=<save_dir>
+./create_buffers.sh --dataset=<dataset> --num_experts=<num_experts> --train_labels_path= <train_labels_path> --start_device=0 --end_device=3 --num_runs=<num_runs> --env_name=<env_name> --save_dir=<save_dir> --dry_run=0 <set to 1 if only want commands>
 ```
 
 P.S. For the aforementioned script, it is necessary to use arg_name=value convention for correct argument pasing.
