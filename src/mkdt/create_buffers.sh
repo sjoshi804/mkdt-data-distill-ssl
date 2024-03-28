@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Parse command line arguments
+dry_run=0
 while [[ $# -gt 0 ]]; do
     case $1 in
         --dataset=*)
@@ -27,6 +28,9 @@ while [[ $# -gt 0 ]]; do
         --save_dir=*)
             save_dir="${1#*=}"
             ;;
+        --dry_run=*)
+            dry_run="${1#*=}"
+            ;;
         *)
             echo "Unknown argument: $1"
             exit 1
@@ -40,8 +44,11 @@ script_params="--dataset=$dataset --num_experts=$num_experts --train_labels_path
 # Loop through devices and run in tmux sessions
 for ((device=$start_device; device<=$end_device; device++)); do
     for ((i=0; i<num_runs; i++)); do
-        tmux new-session -d -s "run_${device}_$i"
-        tmux send-keys "conda activate $env_name && CUDA_VISIBLE_DEVICES=$device python buffer.py $script_params" C-m
-        echo "python buffer.py $script_params"
+        if [ $dry_run == 0 ]; then
+            tmux new-session -d -s "run_${device}_$i"
+            tmux send-keys "conda activate $env_name && CUDA_VISIBLE_DEVICES=$device python buffer.py $script_params" C-m
+        fi
+        echo "tmux new-session -d -s run_${device}_$i"
+        echo "tmux send-keys conda activate $env_name && CUDA_VISIBLE_DEVICES=$device python buffer.py $script_params"
     done
 done

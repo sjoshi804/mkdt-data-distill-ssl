@@ -84,12 +84,15 @@ class ConvNet(nn.Module):
             im_size = (32, 32)
         shape_feat = [in_channels, im_size[0], im_size[1]]
         for d in range(net_depth):
-            layers += [nn.Conv2d(in_channels, net_width, kernel_size=3, padding=3 if channel == 1 and d == 0 else 1)]
-            shape_feat[0] = net_width
+            layer_width = net_width
+            if isinstance(net_width, list):
+                layer_width = net_width[d]                
+            layers += [nn.Conv2d(in_channels, layer_width, kernel_size=3, padding=3 if channel == 1 and d == 0 else 1)]
+            shape_feat[0] = layer_width
             if net_norm != 'none':
                 layers += [self._get_normlayer(net_norm, shape_feat)]
             layers += [self._get_activation(net_act)]
-            in_channels = net_width
+            in_channels = layer_width
             if net_pooling != 'none':
                 layers += [self._get_pooling(net_pooling)]
                 shape_feat[1] //= 2

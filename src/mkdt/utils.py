@@ -339,6 +339,8 @@ def get_network(model, channel, num_classes, im_size=(32, 32), dist=False, fix_n
 
     if model == 'MLP':
         net = MLP(channel=channel, num_classes=num_classes)
+    elif model == 'ConvNetKRRSTD3':
+        net = ConvNet(channel, num_classes, [128,256,512], net_depth, net_act, "batchnorm", net_pooling)
     elif model == 'ConvNet':
         net = ConvNet(channel=channel, num_classes=num_classes, net_width=net_width, net_depth=net_depth, net_act=net_act, net_norm=net_norm, net_pooling=net_pooling, im_size=im_size)
     elif model == 'LeNet':

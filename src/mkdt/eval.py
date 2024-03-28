@@ -22,7 +22,7 @@ def aggregate_results(results):
     return aggregated_results
 
 def main(args):
-    target_datasets = ["tiny", "cifar100", "CIFAR10", "aircraft", "cub2011", "dogs", "flowers"]
+    target_datasets = ["cifar100", "aircraft", "cub2011", "dogs", "flowers"]
 
     # Wandb init
     wandb.init(
@@ -38,8 +38,16 @@ def main(args):
     print(f"Evaluate for {path}")
 
     final_res = {}
-
+    
+    # Set encoder lr to be 0.1 * test_lr if not set
+    if args.encoder_lr is None:
+        args.encoder_lr = 0.1 * args.test_lr
+    random_encoder_lr = args.encoder_lr
+    default_encoder_lr = 0.1 * args.test_lr
+    
+    
     for td in target_datasets:
+        print(f"Evaluating on {td}")
         args.test_dataset = td
     
         res_list = []
@@ -141,7 +149,7 @@ def main(args):
             os.makedirs(ckpt_dir)
 
         # check random encoder perf
-        random_model =get_network(args.train_model, args.channel, args.num_target_features, args.train_img_shape, fix_net=True).to(device)
+        random_model = get_network(args.train_model, args.channel, args.num_target_features, args.train_img_shape, fix_net=True).to(device)
         if args.test_algorithm == "linear_evaluation":
             rd_loss, rd_acc = le_run(args, device, random_model, dl_tr, dl_te)
         else:
@@ -153,23 +161,27 @@ def main(args):
         res_list.append(rd_acc)
 
         # final performance
-        ckpt_file_final = f"{ckpt_dir}/{path}_pre_epoch_{args.pre_epoch}_{args.seed}_{args.train_dataset}_{args.train_model}_{args.distilled_steps}_{args.pre_lr}_final_full.pt"
-        if os.path.exists(ckpt_file_final):
-            print(f"find {ckpt_file_final}")
-            final_model = get_network(args.train_model, args.channel, args.num_target_features, args.train_img_shape, fix_net=True).to(device)
-            final_model.load_state_dict(torch.load(ckpt_file_final, map_location=device))
-        else:
-            final_model = pretrain_run(args, device, dl_syn)
-            torch.save(final_model.state_dict(), ckpt_file_final)
-        if args.test_algorithm == "linear_evaluation":
-            final_loss, final_acc = le_run(args, device, final_model, dl_tr, dl_te)
-        else:
-            final_loss, final_acc = ft_run(args, device, final_model, dl_tr, dl_te)
-        del final_model
-        print("final_loss", final_loss)
-        print("final_acc", final_acc)
-        wandb.log({f"{td}_final_loss": final_loss, f"{td}_subset_final_accuracy": final_acc})
-        res_list.append(final_acc)
+        if not args.only_random_encoder:
+            # Set encoder lr to be 0.1 * test_lr if not set
+            args.encoder_lr = default_encoder_lr
+            print(args.encoder_lr) # DEBUG
+            ckpt_file_final = f"{ckpt_dir}/{path}_pre_epoch_{args.pre_epoch}_{args.seed}_{args.train_dataset}_{args.train_model}_{args.distilled_steps}_{args.pre_lr}{args.suffix}_final_full.pt"
+            if os.path.exists(ckpt_file_final):
+                print(f"find {ckpt_file_final}")
+                final_model = get_network(args.train_model, args.channel, args.num_target_features, args.train_img_shape, fix_net=True).to(device)
+                final_model.load_state_dict(torch.load(ckpt_file_final, map_location=device))
+            else:
+                final_model = pretrain_run(args, device, dl_syn)
+                torch.save(final_model.state_dict(), ckpt_file_final)
+            if args.test_algorithm == "linear_evaluation":
+                final_loss, final_acc = le_run(args, device, final_model, dl_tr, dl_te)
+            else:
+                final_loss, final_acc = ft_run(args, device, final_model, dl_tr, dl_te)
+            del final_model
+            print("final_loss", final_loss)
+            print("final_acc", final_acc)
+            wandb.log({f"{td}_final_loss": final_loss, f"{td}_subset_final_accuracy": final_acc})
+            res_list.append(final_acc)
     
         final_res[td] = res_list
 
@@ -186,6 +198,9 @@ if __name__ == '__main__':
 
     # seed
     parser.add_argument('--seed', type=int, default=0)
+    
+    # only do random encoder 
+    parser.add_argument('--only_random_encoder', action="store_true")
 
     # data
     parser.add_argument('--data_path', type=str, default="/data")
@@ -224,6 +239,7 @@ if __name__ == '__main__':
     parser.add_argument('--test_opt', type=str, default="sgd")
     parser.add_argument('--test_epoch', type=int, default=50) 
     parser.add_argument('--test_lr', type=float, default=0.05)
+    parser.add_argument('--encoder_lr', type=float, default=None)
     parser.add_argument('--test_wd', type=float, default=0.0)
     parser.add_argument('--subset_frac', type=float, default=None)
 
@@ -236,9 +252,12 @@ if __name__ == '__main__':
     parser.add_argument('--distilled_steps', type=int, default=1000) 
     parser.add_argument('--use_krrst', action="store_true")
 
+    # add extra suffix to make run unique
+    parser.add_argument('--suffix', type=str, default="")
+    
     # args = parser.parse_args()
 
-    seeds = [0, 1, 2]
+    seeds = [0] #[0, 1, 2]
     results = []
     
     args = parser.parse_args()

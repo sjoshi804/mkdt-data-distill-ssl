@@ -16,12 +16,13 @@ def main(args):
     
     if not os.path.exists(args.save_dir):
         os.makedirs(args.save_dir)
-
+    
+    teacher_model = None
     teacher_model = BTModel(feature_dim=1024, dataset=args.dataset, arch=args.arch)
     teacher_model = teacher_model.to(args.device)  
     teacher_model.load_state_dict(torch.load(args.model_path, map_location="cpu"), strict=False)
     teacher_model.eval()
-    
+        
     train_repr = []
     trainloader = DataLoader(dataset=dst_train, batch_size=args.batch_size, shuffle=False)
     with torch.no_grad():

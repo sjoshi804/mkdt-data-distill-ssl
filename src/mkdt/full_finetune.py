@@ -1,4 +1,4 @@
-from tqdm import trange
+from tqdm import tqdm
 from mkdt.utils import get_network
 import torch
 import torch.nn as nn
@@ -11,7 +11,7 @@ import numpy as np
 def ft_run(
     args, device, 
     init_model, 
-    dl_tr, dl_te
+    dl_tr, dl_te,
 ):  
 
     # set seed first 
@@ -33,12 +33,12 @@ def ft_run(
     # opt
     if args.test_opt == "sgd":
         opt = torch.optim.SGD([
-            {"params": backbone_param, "lr": 0.1*args.test_lr, "momentum": 0.9, "weight_decay": args.test_wd},
+            {"params": backbone_param, "lr": args.encoder_lr, "momentum": 0.9, "weight_decay": args.test_wd},
             {"params": fc_param, "lr": args.test_lr, "momentum": 0.9, "weight_decay": args.test_wd}
         ])
     elif args.test_opt == "adam":
         opt = torch.optim.AdamW([
-            {"params": backbone_param, "lr": 0.1*args.test_lr, "weight_decay": args.test_wd},
+            {"params": backbone_param, "lr": args.encoder_lr, "weight_decay": args.test_wd},
             {"params": fc_param, "lr": args.test_lr, "weight_decay": args.test_wd}
         ])
     else:
@@ -46,8 +46,12 @@ def ft_run(
     sch = torch.optim.lr_scheduler.CosineAnnealingLR(opt, args.test_epoch)
 
     print("Full Finetune")
+    print("encoder_lr:", args.encoder_lr)
+    print("classifer_lr:", args.test_lr)
     model.train()
-    for _ in trange(args.test_epoch):
+    pbar = tqdm(range(args.test_epoch), desc="finetuning")
+    for _ in pbar:
+        epoch_loss = 0
         for x, y in dl_tr:
             x, y = x.to(device), y.to(device)
             if zca:
@@ -56,7 +60,9 @@ def ft_run(
             opt.zero_grad()
             loss.backward()
             opt.step()
+            epoch_loss += loss.item()
         sch.step()
+        pbar.set_postfix_str(f"loss: {epoch_loss / len(dl_tr)}")
     
     model.eval()
     with torch.no_grad():        

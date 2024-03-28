@@ -17,7 +17,7 @@ def train_clf(X, y, representation_dim, num_classes, device, reg_weight=1e-3, it
     clf_optimizer = optim.LBFGS(clf.parameters())
     clf.train()
 
-    t = tqdm(range(n_lbfgs_steps), desc='Loss: **** | Train Acc: ****% ', bar_format='{desc}{bar}{r_bar}')
+    t = tqdm(range(n_lbfgs_steps), desc='Liner Probe: Loss: **** | Train Acc: ****% ', bar_format='{desc}{bar}{r_bar}')
     for _ in t:
         def closure():
             clf_optimizer.zero_grad()
