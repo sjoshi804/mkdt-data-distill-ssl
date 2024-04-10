@@ -167,7 +167,7 @@ def main(args):
             print(args.encoder_lr) # DEBUG
             ckpt_file_final = f"{ckpt_dir}/{path}_pre_epoch_{args.pre_epoch}_{args.seed}_{args.train_dataset}_{args.train_model}_{args.distilled_steps}_{args.pre_lr}{args.suffix}_final_full.pt"
             if os.path.exists(ckpt_file_final):
-                print(f"find {ckpt_file_final}")
+                print(f"found {ckpt_file_final}")
                 final_model = get_network(args.train_model, args.channel, args.num_target_features, args.train_img_shape, fix_net=True).to(device)
                 final_model.load_state_dict(torch.load(ckpt_file_final, map_location=device))
             else:
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     # seed
     parser.add_argument('--seed', type=int, default=0)
     
-    # only do random encoder 
+    # only eval random encoder 
     parser.add_argument('--only_random_encoder', action="store_true")
 
     # data
